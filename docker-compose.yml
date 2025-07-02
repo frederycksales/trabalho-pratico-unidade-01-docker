@@ -1,0 +1,114 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: guess-game-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: guessGame
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secretpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - guess-game-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Múltiplas instâncias do backend para balanceamento de carga
+  backend-1:
+    build: ./backend
+    container_name: guess-game-backend-1
+    restart: unless-stopped
+    environment:
+      FLASK_DB_TYPE: postgres
+      FLASK_DB_USER: postgres
+      FLASK_DB_NAME: guessGame
+      FLASK_DB_PASSWORD: secretpass
+      FLASK_DB_HOST: postgres
+      FLASK_DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - guess-game-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend-2:
+    build: ./backend
+    container_name: guess-game-backend-2
+    restart: unless-stopped
+    environment:
+      FLASK_DB_TYPE: postgres
+      FLASK_DB_USER: postgres
+      FLASK_DB_NAME: guessGame
+      FLASK_DB_PASSWORD: secretpass
+      FLASK_DB_HOST: postgres
+      FLASK_DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - guess-game-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  backend-3:
+    build: ./backend
+    container_name: guess-game-backend-3
+    restart: unless-stopped
+    environment:
+      FLASK_DB_TYPE: postgres
+      FLASK_DB_USER: postgres
+      FLASK_DB_NAME: guessGame
+      FLASK_DB_PASSWORD: secretpass
+      FLASK_DB_HOST: postgres
+      FLASK_DB_PORT: 5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - guess-game-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend com proxy reverso NGINX
+  frontend:
+    build: ./frontend
+    container_name: guess-game-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend-1:
+        condition: service_healthy
+      # backend-2 e backend-3 são opcionais para resiliência real
+    networks:
+      - guess-game-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Persistência de dados
+volumes:
+  postgres_data:
+    driver: local
+
+# Isolamento de rede
+networks:
+  guess-game-network:
+    driver: bridge

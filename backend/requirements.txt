@@ -1,0 +1,7 @@
+Flask==3.0.3
+Flask-Cors==5.0.0
+boto3==1.35.33
+psycopg2-binary==2.9.9
+opentelemetry-instrumentation-flask
+opentelemetry-distro
+opentelemetry-distro[otlp]
